@@ -8,3 +8,5 @@ java/out
 **/.gradle
 **/build
 dsl/**/*.json
+
+dsl/_infra/.structurizr-data/**/*
