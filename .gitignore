@@ -10,3 +10,4 @@ java/out
 dsl/**/*.json
 
 dsl/_infra/.structurizr-data/**/*
+!dsl/_infra/.structurizr-data/workspace.dsl
