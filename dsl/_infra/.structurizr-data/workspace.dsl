@@ -8,6 +8,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
         api_user = person "API User" "A customer that predeominantly uses the API."
         normal_user = person "Normal User" "A customer that uses the web or mobile applications."
         admin_user = person "Admin User" "A Support Desk or other Administrative user."
+        observability_user = person "Observability User" "An external user that monitors the system for errors and performance."
 
         # Software Systems
         pie_platform = softwareSystem "Pie Platform" "A platform for building, managing and monitoring Pie production." {
@@ -15,7 +16,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
             firewall = container "Firewall" "Firewall solution." "Go"
             api_gateway = container "API Gateway" "The API Gateway for the Pie Platform." "Go"
             api = container "API Layer" "The API layer of the Pie Platform." "PHP"
-            command_agent = container "Command Agent" "The command and control application IoT device." "Assembly" "iot"
+            pie_maker_device = container "Pie Maker Device" "The command and control IoT device for making pies." "Assembly" "iot"
             
             group "Cron Jobs" {
                 all_cron_jobs = container "Cron Jobs" "The cron jobs for the Pie Platform." "NodeJS"
@@ -44,10 +45,10 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
             
             opensearch = container "OpenSearch" "The search engine for the Pie Platform." "opensearch" "Database"
 
-            redis = container "Redis" "The cache for the Pie Platform." "Redis" "Database"
+            garnet = container "Garnet" "The cache for the Pie Platform." "Garent" "Database"
 
             rabbit_mq = container "Rabbit MQ" "The message broker for the Pie Platform." "rabbit_mq" "Messaging"
-            
+            kafka = container "Kafka" "The data streaming service for the Pie Platform." "kafka" "Messaging"            
             clickhouse = container "ClickHouse" "Configuration and messaing sysem." "ClickHouse" "Messaging"
         }
 
@@ -56,7 +57,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
             payment_provider = softwareSystem "Payment Provider" "A payment provider for the Pie Platform." "External"
             auth0 = softwareSystem "Auth0" "An authentication and authorization service for the Pie Platform." "External"
             pie_dc = softwareSystem "Pie Data Centre" "A dedicated data centre for Pie production." "External"
-            microsoft365 = softwareSystem "Microsoft 365" "Microsoft 365 services." "External"
+            microsoft_365 = softwareSystem "Microsoft 365" "Microsoft 365 services." "External"
             sentry_io = softwareSystem "Sentry.io" "Error tracking and monitoring service." "External"
         
             group "Cloud Services" {
@@ -64,6 +65,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
                 aws = softwareSystem "Amazon Web Servces" "AWS Cloud Services" "External"
                 gcp = softwareSystem "Google Cloud Platform" "Google Cloud Services" "External"
                 tencent_cloud = softwareSystem "Tencent Cloud" "Tencent Cloud Services" "External"
+                oracle_cloud = softwareSystem "Oracle Cloud" "Oracle Cloud Services" "External"
             }
         }
 
@@ -113,7 +115,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
         all_microservices -> customer_database "Stores data in"
         all_microservices -> pie_database "Stores data in"
         all_microservices -> opensearch "Stores data in"
-        all_microservices -> redis "Caches data in"
+        all_microservices -> garnet "Caches data in"
         all_microservices -> rabbit_mq "Sends messages to"
         rabbit_mq -> all_microservices "Receives messages from"
 
@@ -122,41 +124,46 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
         vm_manager -> aws "Uses"
         vm_manager -> gcp "Uses"
         vm_manager -> tencent_cloud "Uses"
+        vm_manager -> oracle_cloud "Uses"
         vm_manager -> pie_cloud_database "Stores data in"
         vm_manager -> rabbit_mq "Sends messages to"
-        vm_manager -> redis "Caches data in"
+        vm_manager -> garnet "Caches data in"
         rabbit_mq -> vm_manager "Receives messages from"
 
         legacy_connector -> sentry_io "Sends observability data to"
         legacy_connector -> pie_database "Stores data in"
         legacy_connector -> pie_cloud_database "Stores data in"
         legacy_connector -> rabbit_mq "Sends messages to"
-        legacy_connector -> redis "Caches data in"
+        legacy_connector -> garnet "Caches data in"
         rabbit_mq -> legacy_connector "Receives messages from"
 
         pie_tracker -> sentry_io "Sends observability data to"
         pie_tracker -> pie_database "Stores data in"
         pie_tracker -> pie_cloud_database "Stores data in"
         pie_tracker -> rabbit_mq "Sends messages to"
-        pie_tracker -> redis "Caches data in"
+        pie_tracker -> garnet "Caches data in"
         rabbit_mq -> pie_tracker "Receives messages from"
+        pie_tracker -> kafka "Streams messages to"
+        kafka ->  pie_tracker "Receives streams from"
 
         network_boot -> sentry_io "Sends observability data to"
         network_boot -> pie_database "Stores data in"
         network_boot -> rabbit_mq "Sends messages to"
-        network_boot -> redis "Caches data in"
+        network_boot -> garnet "Caches data in"
         rabbit_mq -> network_boot "Receives messages from"
 
         email_service -> sentry_io "Sends observability data to"
-        email_service -> microsoft365 "Sends e-mails via"
+        email_service -> microsoft_365 "Sends e-mails via"
         rabbit_mq -> email_service "Receives messages from"
 
-        command_agent -> sentry_io "Sends observability data to"
-        command_agent -> rabbit_mq "Sends commands to"
-        rabbit_mq -> command_agent "Recieves commands from"
+        pie_maker_device -> sentry_io "Sends observability data to"
+        pie_maker_device -> kafka "Streams messages to"
+        kafka ->  pie_maker_device "Receives streams from"
+
+        rabbit_mq -> observability_user "Sends observability data to"
 
         production = deploymentEnvironment "Production" {
-            deploymentNode "On-Prem" {
+            deploymentNode "Pie Data Centre: On-Prem" {
                 deploymentNode "Kubernetes" {
                     containerInstance firewall
                     containerInstance vm_manager
@@ -193,12 +200,16 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
                     containerInstance opensearch
                 }
 
-                deploymentNode "Redis Cluster" {
-                    containerInstance redis
+                deploymentNode "Garent Cluster" {
+                    containerInstance garnet
                 }
 
-                deploymentNode "rabbit_mq Cluster" {
+                deploymentNode "RabbitMQ Cluster" {
                     containerInstance rabbit_mq
+                }
+                
+                deploymentNode "Kafka Cluster" {
+                    containerInstance kafka
                 }
                 
                 deploymentNode "ClickHouse Cluster" {
@@ -206,25 +217,29 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
                 }
                 
                 deploymentNode "Internally Hosted" {
-                    containerInstance command_agent
+                    containerInstance pie_maker_device
                 }
             }
 
             deploymentNode "Cloud" {
                 deploymentNode "Azure" {
-                    containerInstance command_agent
+                    containerInstance pie_maker_device
                 }
 
                 deploymentNode "AWS" {
-                    containerInstance command_agent
+                    containerInstance pie_maker_device
                 }
 
                 deploymentNode "GCP" {
-                    containerInstance command_agent
+                    containerInstance pie_maker_device
                 }
 
                 deploymentNode "Tencent Cloud" {
-                    containerInstance command_agent
+                    containerInstance pie_maker_device
+                }
+                
+                deploymentNode "Oracle Cloud" {
+                    containerInstance pie_maker_device
                 }
             }
         } 
