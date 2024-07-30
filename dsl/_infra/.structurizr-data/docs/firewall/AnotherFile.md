@@ -1,8 +1,4 @@
-**AnotherFile.md - Start**
-
-# Another File
-
-## Heading 2
+## Another File
 
 This is just a test...
 

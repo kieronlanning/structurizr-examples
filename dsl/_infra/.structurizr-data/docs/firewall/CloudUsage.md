@@ -1,8 +1,4 @@
-**CloudUsage.md - Start**
-
-# Cloud Usage
-
-## Heading 2
+## Cloud Usage
 
 Opps
 

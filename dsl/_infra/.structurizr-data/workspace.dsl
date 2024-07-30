@@ -8,7 +8,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
         api_user = person "API User" "A customer that predeominantly uses the API."
         normal_user = person "Normal User" "A customer that uses the web or mobile applications."
         admin_user = person "Admin User" "A Support Desk or other Administrative user."
-        observability_user = person "Observability User" "An external user that monitors the system for errors and performance."
+        external_observability_user = person "External Observability User" "An external user that monitors the system for errors and performance."
 
         # Software Systems
         pie_platform = softwareSystem "Pie Platform" "A platform for building, managing and monitoring Pie production." {
@@ -170,7 +170,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
         pie_maker_device -> kafka "Streams messages to"
         kafka ->  pie_maker_device "Receives streams from"
 
-        rabbit_mq -> observability_user "Sends observability data to"
+        rabbit_mq -> external_observability_user "Sends observability data to"
 
         opensearch_dashboard -> opensearch "Displays data from"
 
@@ -284,12 +284,17 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
     views {
         systemContext pie_platform "SystemContextDiagram" {
             include *
-            autolayout lr
+            autolayout
         }
 
         container pie_platform "ContainerDiagram" {
             include *
-            autolayout lr
+            autolayout
+        }
+        
+        container  pie_platform "MicroservicesDiagram" "Microservices with assocatied databases." {
+            include "element.tag==microservice" "element.tag==Database"
+            autolayout
         }
 
         deployment * production "ProductionDeployment" "The deployment of the Pie Platform in a production environment." {
