@@ -12,8 +12,16 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
 
         # Software Systems
         pie_platform = softwareSystem "Pie Platform" "A platform for building, managing and monitoring Pie production." {
+            !docs docs/pie-platform/
+            !adrs adrs/pie-platform/
+            
+            # Networking services
+            firewall = container "Firewall" "Firewall solution." "Go" {
+                !docs docs/firewall/
+                !adrs adrs/firewall/
+            }
+
             # Application services
-            firewall = container "Firewall" "Firewall solution." "Go"
             api_gateway = container "API Gateway" "The API Gateway for the Pie Platform." "Go"
             api = container "API Layer" "The API layer of the Pie Platform." "PHP"
             pie_maker_device = container "Pie Maker Device" "The command and control IoT device for making pies." "Assembly" "iot"
