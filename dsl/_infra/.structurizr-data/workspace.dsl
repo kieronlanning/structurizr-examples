@@ -23,12 +23,12 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
             }
 
             group "Microservices" {
-                all_microservices = container "Microservices" "A collection of microservices." "PHP"
-                vm_manager = container "VM Manager" "Manages the virtual machines for the Pie Platform." ".NET"
-                legacy_connector = container "Legacy Connector" "Connects to legacy systems." ".NET"
-                pie_tracker = container "Pie Tracker" "Manages the live state of the pies in production." ".NET"
-                network_boot = container "Network Boot" "Manages the boot process for the Pie Platform." "C++"
-                email_service = container "E-mail Service" "Sends e-mails." ".NET"
+                legacy_microservices = container "Legacy Microservices" "A collection of legacy microservices." "PHP" "microservice"
+                vm_manager = container "VM Manager" "Manages the lifetime of virtual machines in private and public clouds." ".NET" "microservice"
+                legacy_connector = container "Legacy Connector" "Connects to legacy systems." ".NET" "microservice"
+                pie_tracker = container "Pie Tracker" "Manages the live state of the pies in production." ".NET" "microservice"
+                network_boot = container "Network Boot" "Manages the boot process for the Pie Platform." "C++" "microservice"
+                email_service = container "E-mail Service" "Sends e-mails." ".NET" "microservice"
             }
 
             # Web applications
@@ -44,8 +44,9 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
             pie_cloud_database = container "Pie Cloud Database" "The database for Pies built and managed in external cloud services." "MongoDB" "Database"
             
             opensearch = container "OpenSearch" "The search engine for the Pie Platform." "opensearch" "Database"
+            opensearch_dashboard = container "OpenSearch Dashbaord" "A dashbaord built to integrate with OpenSearch." "opensearch" "Telemetry"
 
-            garnet = container "Garnet" "The cache for the Pie Platform." "Garent" "Database"
+            garnet = container "Garnet" "The distributed cache for the Pie Platform." "Garent" "Database"
 
             rabbit_mq = container "Rabbit MQ" "The message broker for the Pie Platform." "rabbit_mq" "Messaging"
             kafka = container "Kafka" "The data streaming service for the Pie Platform." "kafka" "Messaging"            
@@ -70,14 +71,17 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
         }
 
         # Relationships
-        api_user -> firewall "Uses"
-        normal_user -> customer_portal "Uses"
+        api_user -> firewall "Uses the API via"
+        normal_user -> firewall "Uses the Customer Portal via"
         normal_user -> mobile_app "Uses"
         admin_user -> admin_portal "Uses"
+        admin_user -> opensearch_dashboard "Uses"
 
         firewall -> api_gateway "Forwards and protects requests to"
         firewall -> clickhouse "Sends messages to"
         firewall -> sentry_io "Sends observability data to"
+        firewall -> customer_portal "Forwards requests to"
+        firewall -> admin_portal "Forwards requests to"
 
         api_gateway -> api "Forwards requests to"
         api_gateway -> auth0 "Authenticates with"
@@ -93,14 +97,12 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
 
         customer_portal -> sentry_io "Sends observability data to"
         customer_portal -> auth0 "Authenticates with"
-        customer_portal -> firewall "Uses"
         customer_portal -> customer_database "Stores data in"
         customer_portal -> pie_database "Stores data in"
         customer_portal -> pie_cloud_database "Stores data in"
         
         admin_portal -> sentry_io "Sends observability data to"
         admin_portal -> auth0 "Authenticates with" 
-        admin_portal -> firewall "Uses"
         admin_portal -> customer_database "Stores data in"
         admin_portal -> pie_database "Stores data in"
         admin_portal -> pie_cloud_database "Stores data in"
@@ -111,13 +113,13 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
         all_cron_jobs -> opensearch "Stores data in"
         all_cron_jobs -> rabbit_mq "Sends messages to"
 
-        all_microservices -> sentry_io "Sends observability data to"
-        all_microservices -> customer_database "Stores data in"
-        all_microservices -> pie_database "Stores data in"
-        all_microservices -> opensearch "Stores data in"
-        all_microservices -> garnet "Caches data in"
-        all_microservices -> rabbit_mq "Sends messages to"
-        rabbit_mq -> all_microservices "Receives messages from"
+        legacy_microservices -> sentry_io "Sends observability data to"
+        legacy_microservices -> customer_database "Stores data in"
+        legacy_microservices -> pie_database "Stores data in"
+        legacy_microservices -> opensearch "Stores data in"
+        legacy_microservices -> garnet "Caches data in"
+        legacy_microservices -> rabbit_mq "Sends messages to"
+        rabbit_mq -> legacy_microservices "Receives messages from"
 
         vm_manager -> sentry_io "Sends observability data to"
         vm_manager -> azure "Uses"
@@ -162,17 +164,22 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
 
         rabbit_mq -> observability_user "Sends observability data to"
 
+        opensearch_dashboard -> opensearch "Displays data from"
+
         production = deploymentEnvironment "Production" {
-            deploymentNode "Pie Data Centre: On-Prem" {
-                deploymentNode "Kubernetes" {
+            deploymentNode "Pie Data Centre: Private Cloud" {
+                deploymentNode "Bare Metal Machines" {
                     containerInstance firewall
+                }
+
+                deploymentNode "Kubernetes" {
                     containerInstance vm_manager
                     containerInstance legacy_connector
                     containerInstance pie_tracker
                 }
 
                 deploymentNode "Docker Swarm" {
-                    containerInstance all_microservices
+                    containerInstance legacy_microservices
                     containerInstance network_boot
                 }
 
@@ -191,13 +198,16 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
                 }
 
                 deploymentNode "Database Cluster" {
+                    infrastructureNode "DB Proxy"
+
                     containerInstance customer_database
                     containerInstance pie_database
                     containerInstance pie_cloud_database
                 }
 
-                deploymentNode "opensearch Cluster" {
+                deploymentNode "OpenSearch Cluster" {
                     containerInstance opensearch
+                    containerInstance opensearch_dashboard
                 }
 
                 deploymentNode "Garent Cluster" {
@@ -216,30 +226,48 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
                     containerInstance clickhouse
                 }
                 
-                deploymentNode "Internally Hosted" {
-                    containerInstance pie_maker_device
+                deploymentNode "Private Cloud" {
+                    deploymentNode "Bare Metal Machine"{
+                        containerInstance pie_maker_device
+                    }
+
+                    deploymentNode "VMWare ESXi" {
+                        deploymentNode "VMs"{
+                            containerInstance pie_maker_device
+                        }
+                    }
                 }
             }
 
-            deploymentNode "Cloud" {
+            deploymentNode "Pubic Cloud" {
                 deploymentNode "Azure" {
-                    containerInstance pie_maker_device
+                    deploymentNode "Azure VMs"  {
+                        containerInstance pie_maker_device
+                    }
                 }
 
-                deploymentNode "AWS" {
-                    containerInstance pie_maker_device
+                deploymentNode "Amazon Web Services" {
+                    deploymentNode "AWS EC2" {
+                        containerInstance pie_maker_device
+                    }
                 }
 
-                deploymentNode "GCP" {
-                    containerInstance pie_maker_device
+                deploymentNode "Google Cloud Platform" {
+                    deploymentNode "GCP VMs" {
+                        containerInstance pie_maker_device
+                    }
                 }
 
-                deploymentNode "Tencent Cloud" {
-                    containerInstance pie_maker_device
+                deploymentNode "Tencet Cloud Platform" {
+                    deploymentNode "Tencent Cloud VMs" {
+                        containerInstance pie_maker_device
+                    }
                 }
-                
-                deploymentNode "Oracle Cloud" {
-                    containerInstance pie_maker_device
+
+                deploymentNode "Oracle Cloud" {    
+                    deploymentNode "Oracle Cloud VMs" {
+                        containerInstance pie_maker_device
+                    }
                 }
             }
         } 
@@ -296,6 +324,12 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
                 background #706F6C
                 color #ffffff
                 shape Hexagon
+            }
+            
+            element "microservice" {
+                background #acfb00
+                color #000000
+                shape Component
             }
         }
     }
