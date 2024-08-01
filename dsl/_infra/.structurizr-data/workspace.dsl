@@ -7,6 +7,8 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
         !include models/relationships.dsl
 
         # Deployments
+        !include models/deployment-development.dsl 
+        !include models/deployment-test.dsl 
         !include models/deployment-production.dsl 
     }
 

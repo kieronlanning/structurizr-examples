@@ -32,8 +32,10 @@ pie_platform = softwareSystem "Pie Platform" "A platform for building, managing 
     admin_portal = container "Admin Portal" "The administrative panel for the Pie Platform." ".NET" "WebApp"
     
     # Mobile applications
-    mobile_app = container "Mobile App" "The mobile application for the Pie Platform." "React Native" "mobile_app"
-
+    group "Customer Device" {
+        mobile_app = container "Mobile App" "The mobile application for the Pie Platform." "React Native" "mobile_app"
+    }
+    
     # Data stores
     customer_database = container "Customer Database" "The database for customer information." "FoxPro" "Database"
     pie_database = container "Pies Database" "The database for internally build Pies." "SQL Server" "Database"

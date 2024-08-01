@@ -17,6 +17,16 @@
     }
 
     # Deployment views
+    deployment * development "DevelopmentDeployment" "The deployment of the Pie Platform in a development environment." {
+        include *
+        autolayout
+    }
+
+    deployment * test "TestingDeployment" "The deployment of the Pie Platform in a test environment." {
+        include *
+        autolayout
+    }
+
     deployment * production "ProductionDeployment" "The deployment of the Pie Platform in a production environment." {
         include *
         autolayout
