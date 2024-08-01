@@ -52,7 +52,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
             pie_cloud_database = container "Pie Cloud Database" "The database for Pies built and managed in external cloud services." "MongoDB" "Database"
             
             opensearch = container "OpenSearch" "The search engine for the Pie Platform." "opensearch" "Database"
-            opensearch_dashboard = container "OpenSearch Dashbaord" "A dashbaord built to integrate with OpenSearch." "opensearch" "Telemetry"
+            opensearch_dashboard = container "OpenSearch Dashboard" "A dashboard built to integrate with OpenSearch." "opensearch" "Telemetry"
 
             garnet = container "Garnet" "The distributed cache for the Pie Platform." "Garent" "Database"
 
@@ -176,19 +176,38 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
 
         production = deploymentEnvironment "Production" {
             deploymentNode "Pie Data Centre: Private Cloud" {
-                deploymentNode "Bare Metal Machines" {
-                    containerInstance firewall
+
+                deploymentNode "Firewall Cluster" {
+                    deploymentNode "Firewall Nodes" {
+                        instances 4
+
+                        containerInstance firewall 
+                    }
                 }
 
-                deploymentNode "Kubernetes" {
-                    containerInstance vm_manager
-                    containerInstance legacy_connector
-                    containerInstance pie_tracker
+                deploymentNode "Kubernetes Cluster" {
+                    deploymentNode "Kubernetes Master" {
+                        instances 2
+
+                        infrastructureNode "Kubernetes Master"
+                    }
+
+                    deploymentNode "Kubernetes Node" {
+                        instances 16
+
+                        containerInstance vm_manager
+                        containerInstance legacy_connector
+                        containerInstance pie_tracker
+                    }
                 }
 
                 deploymentNode "Docker Swarm" {
-                    containerInstance legacy_microservices
-                    containerInstance network_boot
+                    deploymentNode "Docker Node" {
+                        instances 16
+
+                        containerInstance legacy_microservices
+                        containerInstance network_boot
+                    }
                 }
 
                 deploymentNode "Cron Jobs" {
@@ -196,42 +215,88 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
                 }
 
                 deploymentNode "API Gateway" {
+                    instances 4
+
                     containerInstance api_gateway
                 }
 
                 deploymentNode "Web Servers" {
-                    containerInstance api
-                    containerInstance customer_portal
-                    containerInstance admin_portal
+                    deploymentNode "Web Server Node" {
+                        instances 3
+
+                        containerInstance api
+                        containerInstance customer_portal
+                        containerInstance admin_portal
+                    }
                 }
 
                 deploymentNode "Database Cluster" {
-                    infrastructureNode "DB Proxy"
+                    deploymentNode "Proxy Units" {
+                        instances 2
+                        description "Proxy units for the database cluster."
 
-                    containerInstance customer_database
-                    containerInstance pie_database
-                    containerInstance pie_cloud_database
+                        infrastructureNode "DB Proxy"
+                    }
+
+                    deploymentNode "Replication Node" {
+                        instances 3
+
+                        containerInstance customer_database
+                        containerInstance pie_database
+                        containerInstance pie_cloud_database
+                    }
                 }
 
                 deploymentNode "OpenSearch Cluster" {
-                    containerInstance opensearch
-                    containerInstance opensearch_dashboard
+                    deploymentNode "OpenSearch Node" {
+                        instances 6
+
+                        containerInstance opensearch
+                    }
+
+                    deploymentNode "OpenSearch Search Node" {
+                        instances 2
+
+                        containerInstance opensearch
+                    }
+
+                    deploymentNode "OpenSearch Dashboard Node" {
+                        instances 2
+
+                        containerInstance opensearch_dashboard
+                    }
                 }
 
                 deploymentNode "Garent Cluster" {
-                    containerInstance garnet
+                    deploymentNode "Garent Node" {
+                        instances 6
+                        
+                        containerInstance garnet
+                    }
                 }
 
                 deploymentNode "RabbitMQ Cluster" {
-                    containerInstance rabbit_mq
+                    deploymentNode "RabbitMQ Node" {
+                        instances 8
+
+                        containerInstance rabbit_mq
+                    }
                 }
                 
                 deploymentNode "Kafka Cluster" {
-                    containerInstance kafka
+                    deploymentNode "Kafka Node" {
+                        instances 3
+
+                        containerInstance kafka
+                    }
                 }
                 
                 deploymentNode "ClickHouse Cluster" {
-                    containerInstance clickhouse
+                    deploymentNode "ClickHouse Node" {
+                        instances 6
+
+                        containerInstance clickhouse
+                    }
                 }
                 
                 deploymentNode "Private Cloud" {
@@ -240,7 +305,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
                     }
 
                     deploymentNode "VMWare ESXi" {
-                        deploymentNode "VMs"{
+                        deploymentNode "VMs" {
                             containerInstance pie_maker_device
                         }
                     }
@@ -249,7 +314,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
 
             deploymentNode "Pubic Cloud" {
                 deploymentNode "Azure" {
-                    deploymentNode "Azure VMs"  {
+                    deploymentNode "Azure VMs" {
                         containerInstance pie_maker_device
                     }
                 }
@@ -292,7 +357,7 @@ workspace "Pie Platform" "A platform for building, managing and monitoring Pie p
             autolayout
         }
         
-        container  pie_platform "MicroservicesDiagram" "Microservices with assocatied databases." {
+        container pie_platform "MicroservicesDiagram" "Microservices with assocatied databases." {
             include "element.tag==microservice" "element.tag==Database"
             autolayout
         }
