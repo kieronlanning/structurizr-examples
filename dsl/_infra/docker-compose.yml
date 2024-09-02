@@ -5,7 +5,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./.structurizr-data:/usr/local/structurizr
+      - /.structurizr-data/:/usr/local/structurizr
     stdin_open: true
     tty: true
 
